@@ -1,4 +1,4 @@
-# Ticketing Funnel Analysis — Project Notes
+# Ticketing Purchase Pattern Analysis — Project Notes
 
 Working notes for the ticketing-funnel-analysis portfolio project. Keep this file in the project repo alongside schema.sql.
 
