@@ -22,7 +22,7 @@ FROM ticket t
 WHERE t.price <> p.amount
 ORDER BY a.ticket_id;
 
-/* Accuracy check #2-A, looking for duplicate payments made by the same attendee_id */
+/* Accuracy check #2a (follow-up to #2): attendees with more than one payment row */
 
 SELECT count(p.attendee_id) AS payments_made, p.attendee_id 
 FROM payment p 
@@ -30,9 +30,7 @@ GROUP BY p.attendee_id
 HAVING count(p.attendee_id) > 1;
 
 
-/*
- * Accuracy check #2-B (follow-up to #2): which ticket prices recur among the price vs payment amount mismatches
- */
+/* Accuracy check #2b (follow-up to #2): which ticket prices recur among the price vs payment amount mismatches */
 
 SELECT t.price, count(t.price) AS price_frequency
 FROM ticket t 
