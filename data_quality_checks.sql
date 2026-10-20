@@ -42,4 +42,19 @@ WHERE t.price <> p.amount
 GROUP BY t.price
 ORDER BY price_frequency DESC, t.price DESC;
 
+/* Accuracy check #3 (ticket availability vs attendee row): tickets marked available that have an attendee, or marked sold with no attendee */
+
+SELECT t.event_id , t.ticket_id , a.attendee_id , a."name" , t.availability, 
+	CASE 
+		WHEN t.availability = FALSE AND a.attendee_id IS NULL THEN 'Sold with no attendee listed'
+		WHEN t.availability = TRUE AND a.attendee_id IS NOT NULL THEN 'Marked available with attendee present'
+	END AS issue_type
+FROM ticket t 
+	LEFT JOIN attendee a ON t.ticket_id = a.ticket_id 
+WHERE (t.availability = FALSE AND a.attendee_id IS NULL) OR (t.availability = TRUE AND a.attendee_id IS NOT NULL); 
+
+
+
+
+
 
