@@ -52,6 +52,47 @@ FROM ticket t
 WHERE (t.availability = FALSE AND a.attendee_id IS NULL) OR (t.availability = TRUE AND a.attendee_id IS NOT NULL); 
 
 
+/* Completeness check #1 (missing values in event): count of NULL or blank values in each non-key column */
+
+SELECT 
+	COUNT(*) FILTER (WHERE e.description IS NULL OR TRIM(e.description) = '') AS missing_descrip,
+	COUNT(*) FILTER (WHERE e.name IS NULL OR TRIM(e.name) = '') AS missing_name,
+	COUNT(*) FILTER (WHERE e.venue IS NULL OR TRIM(e.venue) = '') AS missing_venue,
+	COUNT(*) FILTER (WHERE e.date IS NULL) AS missing_date
+FROM "event" e;
+
+/* Completeness check #2 (missing values in ticket): count of NULL or blank values in each non-key column */
+
+SELECT 
+	COUNT(*) FILTER (WHERE t.type IS NULL OR TRIM(t.type) = '') AS missing_type,
+	COUNT(*) FILTER (WHERE t.price IS NULL) AS missing_price,
+	COUNT(*) FILTER (WHERE t.availability IS NULL) AS missing_availability
+FROM ticket t; 
+
+/* Completeness check #3 (missing values in artist ): count of NULL or blank values in each non-key column */
+
+SELECT 
+	COUNT(*) FILTER(WHERE a.name IS NULL OR TRIM(a.name)='') AS missing_name,
+	COUNT(*) FILTER(WHERE a.genre IS NULL OR TRIM(a.genre)='') AS missing_genre
+FROM artist a;
+
+/* Completeness check #4 (missing values in attdendee ): count of NULL or blank values in each non-key column */
+
+SELECT 
+	COUNT(*) FILTER(WHERE a.name IS NULL OR TRIM(a.name) = '') AS missing_name, 
+	COUNT(*) FILTER(WHERE a.email IS NULL OR TRIM(a.email)= '') AS missing_email,
+	COUNT(*) FILTER(WHERE a.phone IS NULL OR TRIM(a.phone)= '') AS missing_phone
+FROM attendee a;
+
+/* Completeness check #5 (missing values in payment ): count of NULL or blank values in each non-key column */
+
+SELECT 
+	count(*) FILTER(WHERE p.amount IS NULL) AS missing_amount,
+	COUNT(*) FILTER(WHERE p.payment_date IS NULL) AS missing_payment_date,
+	COUNT(*) FILTER(WHERE p.payment_method IS NULL OR TRIM(p.payment_method)='') AS missing_payment_method
+FROM payment p;
+
+
 
 
 

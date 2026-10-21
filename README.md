@@ -1,6 +1,6 @@
 # Ticketing Platform Risk & Purchase-Pattern Analysis
 
-**Status: in progress.** Schema design and data load are complete. Data quality validation is underway: the Accuracy dimension is finished (1 of 6 applicable dimensions), and the other five are not started. The data quality pass will be followed by a business recommendations summary and a Power BI dashboard. This README will be updated as each remaining dimension is finished.
+**Status: in progress.** Schema design and data load are complete. Data quality validation is underway: the Accuracy and Completeness dimensions are finished (2 of 6 applicable dimensions), and the other four are not started. The data quality pass will be followed by a business recommendations summary and a Power BI dashboard. This README will be updated as each remaining dimension is finished.
 
 ## Overview
 
@@ -32,7 +32,7 @@ Rather than cleaning ad hoc, this project uses one structured validation pass or
 | Dimension | Applicable? | Status |
 |---|---|---|
 | Accuracy | Yes | Complete |
-| Completeness | Yes | Not started |
+| Completeness | Yes | Complete |
 | Consistency | Yes | Not started |
 | Validity | Yes | Not started |
 | Uniqueness | Yes (constraint-verified) | Not started |
@@ -45,14 +45,18 @@ All queries are in `data_quality_checks.sql`, labeled to match the findings belo
 
 **Check 1, payment timing vs. event date:** Checked whether any payment was recorded after its ticket's event had already occurred (a logical impossibility, since tickets can't be paid for after the event). The check accounts for same-day purchases by comparing dates rather than raw timestamps.
 
-Result: 41 payment records show a payment date after the event date, ranging from 1 to 30 days late. Those values are spread fairly evenly across that whole range rather than clustering toward the low end, which points to how the synthetic data was generated rather than a true outlier. In a real dataset, I'd expect most late payments to be only a few days late, with a smaller number of much later ones, not an even split. It's a good reminder that synthetic data can behave differently from real-world data unless the generation process is built to reflect it.
+Result: 43 payment records show a payment date after the event date, ranging from 1 to 30 days late. Those values are spread fairly evenly across that whole range rather than clustering toward the low end, which points to how the synthetic data was generated rather than a true outlier. In a real dataset, I'd expect most late payments to be only a few days late, with a smaller number of much later ones, not an even split. It's a good reminder that synthetic data can behave differently from real-world data unless the generation process is built to reflect it.
 
-**Check 2, ticket price vs. payment amount:** Compared each payment's amount to the price of the ticket it was made for, joining through the attendee table, using a strict exact comparison. Rows where either value is NULL cannot be compared, so they are left to the Completeness check.
+Limitation: a payment with no payment date cannot be compared to the event date, so the payments missing a date (see Completeness below) are not covered by this check.
+
+**Check 2, ticket price vs. payment amount:** Compared each payment's amount to the price of the ticket it was made for, joining through the attendee table, using a strict exact comparison.
 
 Result: 55 payments do not match their ticket price, in both directions (underpayments and overpayments). Some payments are exactly half the ticket price. Two follow-ups sharpened the picture:
 
 - Check 2a: no attendee has more than one payment row, so the half-price payments are not installments of a payment plan.
 - Check 2b: 25 of the 55 mismatches sit on just four ticket prices (750.00, 1250.00, 9.99, and 0.00), while most other prices appear once. The data alone can't show whether those ticket prices or their payments are the wrong side, which is the kind of question I'd take to whoever owns the pricing data.
+
+Limitation: a comparison with a missing value returns unknown, so any ticket without a price or payment without an amount is silently left out. The Completeness checks found 24 tickets with no price and 17 payments with no amount.
 
 **Check 3, ticket availability vs. attendee record:** A ticket's availability flag should agree with whether an attendee row exists for it. Checked for contradictions in both directions.
 
@@ -60,6 +64,21 @@ Result: 45 tickets contradict their availability flag, in two distinct groups:
 
 - 39 tickets are marked available but have an attendee on record.
 - 6 tickets are marked sold but have no attendee on record.
+
+Limitation: the 34 tickets with no availability value (see Completeness below) match neither condition, so they are not flagged here.
+
+### Findings: Completeness
+
+A value counts as missing if it is NULL or, for text columns, blank after trimming spaces. Key columns were excluded, and `event_artist` has no non-key columns to check.
+
+Result: gaps show up in every other table, but they are concentrated in a few columns:
+
+- 34 tickets have no availability value, 28 have no type, and 24 have no price
+- 23 payments have no payment method, 17 have no amount, and 10 have no payment date
+- 13 attendees are missing a name, 17 an email, and 16 a phone number
+- `event` and `artist` have only a handful: 4 events without a description, 1 without a venue, and 1 artist without a genre
+
+Several of these gaps weaken the Accuracy checks above: missing ticket prices and payment amounts hide rows from check 2, missing payment dates hide rows from check 1, and missing availability values hide rows from check 3. The per-column counts come from the queries in `data_quality_checks.sql`.
 
 ## Repo Contents
 
